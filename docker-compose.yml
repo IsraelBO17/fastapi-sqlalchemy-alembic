@@ -1,4 +1,4 @@
-version: "3.8"
+# version: "3.8"
 
 services:
   adminer-service:
@@ -10,7 +10,7 @@ services:
     networks:
       - describly
     ports:
-      - "8080:8080"
+      - "8090:8080"
 
   fastapi-service:
     build:
