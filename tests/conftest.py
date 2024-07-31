@@ -34,7 +34,7 @@ def test_session() -> Generator:
 def app_test():
     Base.metadata.create_all(bind=engine)
     yield app
-    Base.metadate.drop_all(bind=engine)
+    Base.metadata.drop_all(bind=engine)
 
 
 @pytest.fixture(scope="function")
