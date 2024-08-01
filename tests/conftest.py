@@ -12,7 +12,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from app.main import app
 from app.config.database import Base, get_session
 from app.models.user import User
-
+from app.config.security import hash_password
 
 USER_NAME = "Israel Boluwatife"
 USER_EMAIL = "israel@describly.com"
@@ -47,3 +47,15 @@ def client(app_test, test_session):
     
     app_test.dependency_overrides[get_session] = _test_db
     return TestClient(app_test)
+
+@pytest.fixture(scope="function")
+def user(test_session):
+    model = User()
+    model.name = USER_NAME
+    model.email = USER_EMAIL
+    model.password = hash_password(USER_PASSWORD)
+    model.is_active = False
+    test_session.add(model)
+    test_session.commit()
+    test_session.refresh(model)
+    return model
