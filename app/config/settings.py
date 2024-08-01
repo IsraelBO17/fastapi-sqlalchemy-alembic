@@ -15,6 +15,9 @@ class Settings(BaseSettings):
     APP_NAME:  str = os.environ.get("APP_NAME", "FastAPI")
     DEBUG: bool = bool(os.environ.get("DEBUG", False))
 
+    # Frontend Application
+    FRONTEND_HOST: str = os.environ.get('FRONTEND_HOST', 'http://localhost:3000')
+
     # MySql Database Config
     MYSQL_HOST: str = os.environ.get("MYSQL_HOST", 'localhost')
     MYSQL_USER: str = os.environ.get("MYSQL_USER", 'root')
