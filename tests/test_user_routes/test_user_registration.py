@@ -13,10 +13,10 @@ def test_create_user(client):
     assert 'password' not in response.json()
 
 
-def test_create_user_with_existing_email(client, user):
+def test_create_user_with_existing_email(client, inactive_user):
     data = {
         'name': 'Israel Boluwatife',
-        'email': user.email,
+        'email': inactive_user.email,
         'password': USER_PASSWORD
     }
     response = client.post('/users', json=data)

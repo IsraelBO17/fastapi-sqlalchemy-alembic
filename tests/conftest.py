@@ -1,6 +1,7 @@
 import sys
 import os
 from typing import Generator
+from datetime import datetime
 
 import pytest
 from sqlalchemy import create_engine
@@ -10,6 +11,7 @@ from starlette.testclient import TestClient
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from app.main import app
+from app.config.email import fm
 from app.config.database import Base, get_session
 from app.models.user import User
 from app.config.security import hash_password
@@ -46,14 +48,16 @@ def client(app_test, test_session):
             pass
     
     app_test.dependency_overrides[get_session] = _test_db
+    fm.config.SUPPRESS_SEND = 1
     return TestClient(app_test)
 
 @pytest.fixture(scope="function")
-def user(test_session):
+def inactive_user(test_session):
     model = User()
     model.name = USER_NAME
     model.email = USER_EMAIL
     model.password = hash_password(USER_PASSWORD)
+    model.updated_at = datetime.utcnow()
     model.is_active = False
     test_session.add(model)
     test_session.commit()
