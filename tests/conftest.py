@@ -63,3 +63,18 @@ def inactive_user(test_session):
     test_session.commit()
     test_session.refresh(model)
     return model
+
+@pytest.fixture(scope="function")
+def user(test_session):
+    model = User()
+    model.name = USER_NAME
+    model.email = USER_EMAIL
+    model.password = hash_password(USER_PASSWORD)
+    model.updated_at = datetime.utcnow()
+    model.verified_at = datetime.utcnow()
+    model.is_active = True
+    test_session.add(model)
+    test_session.commit()
+    test_session.refresh(model)
+    return model
+
