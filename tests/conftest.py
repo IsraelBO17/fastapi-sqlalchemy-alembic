@@ -15,6 +15,7 @@ from app.config.email import fm
 from app.config.database import Base, get_session
 from app.models.user import User
 from app.config.security import hash_password
+from app.services.user import _generate_tokens
 
 USER_NAME = "Israel Boluwatife"
 USER_EMAIL = "israel@describly.com"
@@ -50,6 +51,23 @@ def client(app_test, test_session):
     app_test.dependency_overrides[get_session] = _test_db
     fm.config.SUPPRESS_SEND = 1
     return TestClient(app_test)
+
+
+@pytest.fixture(scope="function")
+def auth_client(app_test, test_session, user):
+    def _test_db():
+        try:
+            yield test_session
+        finally:
+            pass
+    
+    app_test.dependency_overrides[get_session] = _test_db
+    fm.config.SUPPRESS_SEND = 1
+    data = _generate_tokens(user, test_session)
+    client = TestClient(app_test)
+    client.headers['Authorization'] = f"Bearer {data['access_token']}"
+    return client
+
 
 @pytest.fixture(scope="function")
 def inactive_user(test_session):

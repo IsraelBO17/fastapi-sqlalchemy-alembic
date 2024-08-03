@@ -59,6 +59,9 @@ async def reset_password(data: ResetPasswordRequest, session: Session = Depends(
 async def get_user(user = Depends(get_current_user)):
     return user
 
+@auth_router.get('/{pk}', status_code=status.HTTP_200_OK, response_model=UserResponse)
+async def get_user_by_id(pk: int, session: Session = Depends(get_session)):
+    return await user.fetch_user_detail(pk, session)
 
 
 
