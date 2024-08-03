@@ -5,7 +5,7 @@ from sqlalchemy.orm import joinedload
 from app.models.user import User, UserToken
 from app.config.settings import get_settings
 from app.config.security import generate_token, get_token_payload, hash_password, is_password_strong_enough, load_user, str_decode, str_encode, verify_password
-from app.services.email import send_account_activation_email, send_account_verification_email
+from app.services.email import send_account_activation_email, send_account_verification_email, send_password_reset_email
 from app.utils.email_context import USER_VERIFY_ACCOUNT
 from app.utils.string import unique_string
 
@@ -149,4 +149,18 @@ def _generate_tokens(user, session):
         'expires_in': at_expires.seconds
     }
 
+
+async def email_forgot_password_link(data, background_tasks, session):
+    user = await load_user(data.email, session)
+    if not user:
+        raise HTTPException(status_code=404, detail='User with this email does not exist.')
+    # Verify user account is verified
+    if not user.verified_at:
+        raise HTTPException(status_code=400, detail='Your account is not verified. Please check your email inbox to verify your account.')
+    
+    # Verify user account is active
+    if not user.is_active:
+        raise HTTPException(status_code=400, detail='Your has been deactivated. Please contact support.')
+    
+    await send_password_reset_email(user, background_tasks)
 
