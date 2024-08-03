@@ -1,11 +1,15 @@
 import base64
 import logging
+from fastapi import Depends, HTTPException
+from sqlalchemy.orm import joinedload, Session
 from fastapi.security import OAuth2PasswordBearer
 import jwt
 from datetime import datetime, timedelta
 from passlib.context import CryptContext
 
+from app.config.database import get_session
 from app.config.settings import get_settings
+from app.models.user import UserToken
 
 
 settings = get_settings()
@@ -66,9 +70,16 @@ def generate_token(payload: dict, secret: str, algo: str, expiry: timedelta):
 async def get_token_user(token: str, db):
     payload = get_token_payload(token, settings.JWT_SECRET, settings.JWT_ALGORITHM)
     if payload:
-        user = await load_user(str_decode(payload.get('username')), db)
-        if user and user.id == int(payload.get('sub')):
-            return user
+        user_token_id = str_decode(payload.get('r'))
+        user_id = str_decode(payload.get('sub'))
+        access_key = payload.get('a')
+        user_token = db.query(UserToken).options(joinedload(UserToken.user)).filter(
+        UserToken.access_key == access_key,
+        UserToken.id == user_token_id,
+        UserToken.user_id == user_id,
+        UserToken.expires_at > datetime.utcnow()).first()
+        if user_token:
+            return user_token.user
     return None
 
 
@@ -77,7 +88,14 @@ async def load_user(email: str, db):
     try:
         user = db.query(User).filter(User.email == email).first()
     except Exception as user_exec:
-        logging.info(f'User Not Found, Email: {email}')
+        logging.info(f'User Not Found, Error: {user_exec}')
         user = None
     return user
+
+
+async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_session)):
+    user = await get_token_user(token=token, db=db)
+    if user:
+        return user
+    raise HTTPException(status_code=401, detail='Not authorized.')
 

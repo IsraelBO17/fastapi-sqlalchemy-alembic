@@ -7,11 +7,19 @@ from app.config.database import get_session
 from app.responses.user import LoginResponse, UserResponse
 from app.schemas.user import EmailRequest, RegisterUserRequest, ResetPasswordRequest, VerifyUserRequest
 from app.services import user
+from app.config.security import get_current_user, oauth2_scheme
 
 user_router = APIRouter(
     prefix='/users',
     tags=['Users'],
     responses={404: {'description': 'Not found'}},
+)
+
+auth_router = APIRouter(
+    prefix='/users',
+    tags=['Users'],
+    responses={404: {'description': 'Not found'}},
+    dependencies=[Depends(oauth2_scheme), Depends(get_current_user)]
 )
 
 guest_router = APIRouter(
@@ -46,5 +54,11 @@ async def forgot_password(data: EmailRequest, background_tasks: BackgroundTasks,
 async def reset_password(data: ResetPasswordRequest, session: Session = Depends(get_session)):
     await user.reset_user_password(data, session)
     return JSONResponse({'message': 'Your password has been updated.'})
+
+@auth_router.get('/me', status_code=status.HTTP_200_OK, response_model=UserResponse)
+async def get_user(user = Depends(get_current_user)):
+    return user
+
+
 
 
