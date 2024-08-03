@@ -32,3 +32,8 @@ async def verify_user_account(data: VerifyUserRequest, background_tasks: Backgro
 @guest_router.post('/login', status_code=status.HTTP_200_OK, response_model=LoginResponse)
 async def login_user(data: OAuth2PasswordRequestForm = Depends(), session: Session = Depends(get_session)):
     return await user.get_login_token(data, session)
+
+@guest_router.post('/refresh', status_code=status.HTTP_200_OK, response_model=LoginResponse)
+async def refresh_token(refresh_token = Header(), session: Session = Depends(get_session)):
+    return await user.get_refresh_token(refresh_token, session)
+

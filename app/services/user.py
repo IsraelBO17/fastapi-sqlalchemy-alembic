@@ -1,9 +1,10 @@
 from datetime import datetime, timedelta
 import logging
 from fastapi import HTTPException
+from sqlalchemy.orm import joinedload
 from app.models.user import User, UserToken
 from app.config.settings import get_settings
-from app.config.security import generate_token, hash_password, is_password_strong_enough, load_user, str_encode, verify_password
+from app.config.security import generate_token, get_token_payload, hash_password, is_password_strong_enough, load_user, str_decode, str_encode, verify_password
 from app.services.email import send_account_activation_email, send_account_verification_email
 from app.utils.email_context import USER_VERIFY_ACCOUNT
 from app.utils.string import unique_string
@@ -86,6 +87,29 @@ async def get_login_token(data, session):
     
     # Generate access_token, refresh_token, and ttl
     return _generate_tokens(user, session)
+    
+
+async def get_refresh_token(refresh_token, session):
+    token_payload = get_token_payload(refresh_token, settings.SECRET_KEY, settings.JWT_ALGORITHM)
+    if not token_payload:
+        raise HTTPException(status_code=400, detail='Invalid Request.')
+    
+    refresh_key = token_payload.get('t')
+    access_key = token_payload.get('a')
+    user_id = str_decode(token_payload.get('sub'))
+
+    user_token = session.query(UserToken).options(joinedload(UserToken.user)).filter(
+        UserToken.refresh_key == refresh_key,
+        UserToken.access_key == access_key,
+        UserToken.user_id == user_id,
+        UserToken.expires_at > datetime.utcnow()).first()
+    if not user_token:
+        raise HTTPException(status_code=404, detail='Invalid Request.')
+    
+    user_token.expires_at = datetime.utcnow()
+    session.add(user_token)
+    session.commit()
+    return _generate_tokens(user_token.user, session)
 
 
 def _generate_tokens(user, session):
