@@ -6,7 +6,7 @@ from app.models.user import User, UserToken
 from app.config.settings import get_settings
 from app.config.security import generate_token, get_token_payload, hash_password, is_password_strong_enough, load_user, str_decode, str_encode, verify_password
 from app.services.email import send_account_activation_email, send_account_verification_email, send_password_reset_email
-from app.utils.email_context import USER_VERIFY_ACCOUNT
+from app.utils.email_context import FORGOT_PASSWORD, USER_VERIFY_ACCOUNT
 from app.utils.string import unique_string
 
 
@@ -157,10 +157,42 @@ async def email_forgot_password_link(data, background_tasks, session):
     # Verify user account is verified
     if not user.verified_at:
         raise HTTPException(status_code=400, detail='Your account is not verified. Please check your email inbox to verify your account.')
-    
     # Verify user account is active
     if not user.is_active:
         raise HTTPException(status_code=400, detail='Your has been deactivated. Please contact support.')
     
     await send_password_reset_email(user, background_tasks)
+
+
+async def reset_user_password(data, session):
+    user = await load_user(data.email, session)
+    if not user:
+        raise HTTPException(status_code=404, detail='User with this email does not exist.')
+    # Verify user account is verified
+    if not user.verified_at:
+        raise HTTPException(status_code=400, detail='Invalid request.')
+    # Verify user account is active
+    if not user.is_active:
+        raise HTTPException(status_code=400, detail='Inalid request.')
+
+    user_token = user.get_context_string(context=FORGOT_PASSWORD)
+
+    try:
+        token_valid = verify_password(user_token, data.token)
+    except Exception as verify_exec:
+        logging.exception(verify_exec)
+        token_valid = False
+    if not token_valid:
+        raise HTTPException(status_code=400, detail='Invalid token.')
+    
+    user.password = hash_password(data.password)
+    user.updated_at = datetime.now()
+    session.add(user)
+    session.commit()
+    session.refresh(user)
+    
+
+
+
+
 

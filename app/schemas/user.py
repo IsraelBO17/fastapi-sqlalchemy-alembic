@@ -12,3 +12,8 @@ class VerifyUserRequest(BaseModel):
 
 class EmailRequest(BaseModel):
     email: EmailStr
+
+class ResetPasswordRequest(BaseModel):
+    token: str
+    email: EmailStr
+    password: str

@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 
 from app.config.database import get_session
 from app.responses.user import LoginResponse, UserResponse
-from app.schemas.user import EmailRequest, RegisterUserRequest, VerifyUserRequest
+from app.schemas.user import EmailRequest, RegisterUserRequest, ResetPasswordRequest, VerifyUserRequest
 from app.services import user
 
 user_router = APIRouter(
@@ -41,4 +41,10 @@ async def refresh_token(refresh_token = Header(), session: Session = Depends(get
 async def forgot_password(data: EmailRequest, background_tasks: BackgroundTasks, session: Session = Depends(get_session)):
     await user.email_forgot_password_link(data, background_tasks, session)
     return JSONResponse({'message': 'An email with the password link has been sent to your email address.'})
+
+@guest_router.post('/reset-password', status_code=status.HTTP_200_OK)
+async def reset_password(data: ResetPasswordRequest, session: Session = Depends(get_session)):
+    await user.reset_user_password(data, session)
+    return JSONResponse({'message': 'Your password has been updated.'})
+
 
